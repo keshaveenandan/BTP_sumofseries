@@ -1,0 +1,87 @@
+import FreeCAD as App
+import FreeCADGui as Gui
+import Part
+import time
+
+# Function to create a block
+def create_block(name, length, width, height, position, color):
+    block = Part.makeBox(length, width, height)
+    obj = App.ActiveDocument.addObject("Part::Feature", name)
+    obj.Shape = block
+    obj.Placement.Base = App.Vector(*position)
+    obj.ViewObject.ShapeColor = color  # Set block color
+    return obj
+
+# Function to animate the movement of a block
+def animate_block(obj, final_position, steps=100, delay=0.05):
+    initial_position = obj.Placement.Base
+    dx = (final_position[0] - initial_position.x) / steps
+    dy = (final_position[1] - initial_position.y) / steps
+    dz = (final_position[2] - initial_position.z) / steps
+
+    for step in range(steps):
+        new_position = App.Vector(
+            initial_position.x + dx * step,
+            initial_position.y + dy * step,
+            initial_position.z + dz * step
+        )
+        obj.Placement.Base = new_position
+        Gui.updateGui()  # Update GUI to reflect changes
+        time.sleep(delay)
+
+# Define colors for different steps
+def get_color_by_step(step):
+    colors = [
+        (1.0, 0.0, 0.0),  # Red
+        (0.0, 1.0, 0.0),  # Green
+        (0.0, 0.0, 1.0),  # Blue
+        (1.0, 1.0, 0.0),  # Yellow
+        (1.0, 0.0, 1.0),  # Magenta
+        (0.0, 1.0, 1.0),  # Cyan
+    ]
+    return colors[step % len(colors)]
+
+# Function to create and animate steps
+def create_and_animate_steps(first_height, common_difference, num_steps):
+    blocks = []
+    start_position = [0, 0, 0]  # Start position (where blocks appear before animation)
+    current_position = [0, 0, 0]  # Target position for each block
+    width = 1  # Fixed width of the blocks
+
+    for i in range(num_steps):
+        height = first_height + i * common_difference  # Height based on arithmetic progression
+        length = common_difference  # Length is the common difference
+        color = get_color_by_step(i)  # Assign a color to each block
+        name = f"Step_{i+1}"
+
+        # Create the block at the start position
+        block = create_block(name, length, width, height, start_position, color)
+        blocks.append(block)
+
+        # Target position for the block
+        final_position = [current_position[0], current_position[1], current_position[2]]
+
+        # Animate the block to its final position
+        animate_block(block, final_position)
+
+        # Update the target position for the next block
+        current_position[0] += length  # Move forward by block length
+        current_position[2] = 0  
+
+    return blocks
+
+# Start a new FreeCAD document
+App.newDocument("AnimatedSteps")
+
+# Parameters for the steps
+first_height = 1        # First block's height
+common_difference = 2   # Length and step progression difference
+num_steps = 5           # Number of steps
+
+# Create and animate the steps
+create_and_animate_steps(first_height, common_difference, num_steps)
+
+# Finalize the document
+App.ActiveDocument.recompute()
+Gui.SendMsgToActiveView("ViewFit")
+print("Steps creation with animation complete.")
