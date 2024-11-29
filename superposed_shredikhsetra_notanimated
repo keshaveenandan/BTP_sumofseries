@@ -1,0 +1,79 @@
+import FreeCAD as App
+import FreeCADGui as Gui
+
+# Function to set the desired view orientation
+def set_view(view="Isometric"):
+    if view == "Top":
+        Gui.ActiveDocument.ActiveView.viewTop()
+    elif view == "Front":
+        Gui.ActiveDocument.ActiveView.viewFront()
+    elif view == "Right":
+        Gui.ActiveDocument.ActiveView.viewRight()
+    elif view == "Left":
+        Gui.ActiveDocument.ActiveView.viewLeft()
+    elif view == "Rear":
+        Gui.ActiveDocument.ActiveView.viewRear()
+    elif view == "Bottom":
+        Gui.ActiveDocument.ActiveView.viewBottom()
+    elif view == "Isometric":
+        Gui.ActiveDocument.ActiveView.viewIsometric()
+    else:
+        print("Unknown view option. Defaulting to Isometric.")
+        Gui.ActiveDocument.ActiveView.viewIsometric()
+
+# Function to create a single block
+def create_block(name, length, width, height, position):
+    block = App.ActiveDocument.addObject("Part::Box", name)
+    block.Length = length
+    block.Width = width
+    block.Height = height
+    block.Placement = App.Placement(App.Vector(position[0], position[1], position[2]), App.Rotation(0, 0, 0, 1))
+    return block
+
+# Function to create a staircase as a single object
+def create_staircase_as_single_object(first_height, common_difference, num_steps):
+    blocks = []
+    current_position = [0, 0, 0]  # Initial position
+    width = 1  # Fixed width of the blocks
+
+    # Create individual blocks
+    for i in range(num_steps):
+        height = first_height + i * common_difference
+        length = common_difference
+        name = f"Step_{i+1}"
+        block = create_block(name, length, width, height, current_position)
+        blocks.append(block)
+
+        # Update position for the next block
+        current_position[0] += length
+        current_position[2] += 0
+
+    # Combine blocks into a single object using Boolean Union
+    if len(blocks) > 1:
+        staircase = App.ActiveDocument.addObject("Part::MultiFuse", "Staircase")
+        staircase.Shapes = blocks
+        App.ActiveDocument.recompute()
+
+        # Remove individual blocks for a cleaner tree view
+        for block in blocks:
+            App.ActiveDocument.removeObject(block.Name)
+    else:
+        staircase = blocks[0]  # In case there's only one block
+
+    return staircase
+
+# Main execution
+App.newDocument("SingleObjectStaircase")
+first_height = 1
+common_difference = 2
+num_steps = 6
+desired_view = "Isometric"
+
+# Create the staircase as a single object
+staircase = create_staircase_as_single_object(first_height, common_difference, num_steps)
+
+# Recompute and set view
+App.ActiveDocument.recompute()
+set_view(desired_view)
+Gui.SendMsgToActiveView("ViewFit")
+print("Single staircase object created.")
