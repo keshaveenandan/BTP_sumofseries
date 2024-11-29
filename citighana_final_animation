@@ -1,0 +1,96 @@
+import FreeCAD as App
+import FreeCADGui as Gui
+import Part
+import time
+
+# Function to create a rectangular slab
+def create_slab_1(name, length, width, thickness, position, color):
+    slab = Part.makeBox(length, width, thickness)
+    obj = App.ActiveDocument.addObject("Part::Feature", name)
+    obj.Shape = slab
+    obj.Placement.Base = App.Vector(*position)
+    obj.ViewObject.ShapeColor = color  # Set the color here
+    return obj
+
+def create_slab_2(name, length, width, thickness, position, color):
+    slab = Part.makeBox(length, width, thickness)
+    obj = App.ActiveDocument.addObject("Part::Feature", name)
+    obj.Shape = slab
+    obj.Placement.Rotation = App.Rotation(App.Vector(0, 1, 0), 90)
+    obj.Placement.Base = App.Vector(*position)
+    obj.ViewObject.ShapeColor = color  # Set the color here
+    return obj
+
+def create_slab_3(name, length, width, thickness, position, color):
+    slab = Part.makeBox(length, width, thickness)
+    obj = App.ActiveDocument.addObject("Part::Feature", name)
+    obj.Shape = slab
+    obj.Placement.Rotation = App.Rotation(App.Vector(1, 0, 0), 90)
+    obj.Placement.Base = App.Vector(*position)
+    obj.ViewObject.ShapeColor = color  # Set the color here
+    return obj
+
+# Function to animate the movement of an object
+def animate_movement(obj, final_position, steps=100, delay=0.1):
+    initial_position = obj.Placement.Base
+    dx = (final_position[0] - initial_position.x) / steps
+    dy = (final_position[1] - initial_position.y) / steps
+    dz = (final_position[2] - initial_position.z) / steps
+
+    for step in range(steps):
+        new_position = App.Vector(
+            initial_position.x + dx * step,
+            initial_position.y + dy * step,
+            initial_position.z + dz * step
+        )
+        obj.Placement.Base = new_position
+        Gui.updateGui()  # Update GUI to reflect changes
+        time.sleep(delay)
+
+# Start a new document
+App.newDocument("CuboidAssembly")
+
+# Define colors for different layers
+def get_color_by_layer(layer):
+    colors = [
+        (1.0, 0.0, 0.0),  # Red
+        (0.0, 1.0, 0.0),  # Green
+        (0.0, 0.0, 1.0),  # Blue
+        (1.0, 1.0, 0.0),  # Yellow
+        (1.0, 0.0, 1.0),  # Magenta
+        (0.0, 1.0, 1.0),  # Cyan
+    ]
+    return colors[layer % len(colors)]
+
+# Create initial slabs representing Sn, Sn-1, etc.
+slabs = []
+final_positions = []
+positions = [(1, 0, 0), (0, 10, 0), (0, 20, 0)]  # Example positions for animation
+
+n = 6
+
+# Function to add slabs and store them in the slabs list
+def add_slabs(n):
+    for i in range(n):
+        color = get_color_by_layer(i)
+        slab1 = create_slab_1(f"Slab_{i+1}_1", length=n-i, width=n-i+1, thickness=1, position=positions[0], color=color)
+        final_positions.append([0, i, i])
+        slab2 = create_slab_2(f"Slab_{i+1}_2", length=n-i, width=n-i+1, thickness=1, position=positions[1], color=color)
+        final_positions.append([n-i, i, n])
+        slab3 = create_slab_3(f"Slab_{i+1}_3", length=n-i+1, width=n-i, thickness=1, position=positions[2], color=color)
+        final_positions.append([0, i, i])
+        
+        slabs.append(slab1)
+        slabs.append(slab2)
+        slabs.append(slab3)
+
+# Populate the slabs list
+add_slabs(n)
+
+# Run the animation for each slab
+for i, slab in enumerate(slabs):
+    animate_movement(slab, final_positions[i])
+
+App.ActiveDocument.recompute()
+Gui.SendMsgToActiveView("ViewFit")
+print("Animation complete.")
